@@ -78,6 +78,10 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Large data files — download separately from Kaggle
+study_cases/data/sensor.csv
+study_cases/data/*.csv
+
 # IPython
 profile_default/
 ipython_config.py
