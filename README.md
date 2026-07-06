@@ -49,7 +49,7 @@ Download from: https://www.kaggle.com/datasets/nphantawee/pump-sensor-data
 - Drop `sensor_15` (100% missing) and `sensor_50` (35% missing)
 - **IQR-based sensor-error removal** — replace values beyond ±3×IQR with NaN and interpolate
 - **15-minute resampling** — reduces noise and dataset size
-- **Rolling features** — 60-minute rolling mean and std per sensor (153 features total)
+- **Rolling features** — 60-minute rolling mean and std per sensor (150 features total)
 
 ### Models (Task 1 — Baseline)
 Four algorithms from the course Study Case notebook, evaluated on both original and improved data:
