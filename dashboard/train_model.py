@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from detector import SENSORS, features, read_sensor_csv, score
+from detector import SENSORS, features, read_sensor_csv, score, sensor_window_means
 
 HERE = Path(__file__).resolve().parent
 
@@ -37,6 +37,11 @@ def train(source):
     }
     model["threshold"] = np.quantile(score(calibration_values, model), 0.95)
     np.savez_compressed(HERE / "pump_model.npz", **model)
+    observed = sensor_window_means(train_frame).reindex(windows.index)
+    reference = observed.loc[healthy].iloc[calibration_start:].quantile([0.01, 0.99])
+    np.savez_compressed(HERE / "sensor_reference.npz",
+                        lower=reference.iloc[0].to_numpy(),
+                        upper=reference.iloc[1].to_numpy())
 
     held_out = frame.iloc[split:]
     windows, values, missing = features(held_out, lower, upper, medians)

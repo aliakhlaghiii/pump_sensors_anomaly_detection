@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from detector import SENSORS, features, read_sensor_csv, sample_readings, score
+from detector import SENSORS, features, read_sensor_csv, sample_readings, score, sensor_window_means
 
 st.set_page_config(page_title="Pump Signal Monitor", page_icon="📈", layout="wide")
 
@@ -17,26 +17,38 @@ def load_model():
         return dict(artifact)
 
 
+@st.cache_resource
+def load_sensor_reference():
+    with np.load(Path(__file__).with_name("sensor_reference.npz"), allow_pickle=False) as reference:
+        return {key: pd.Series(reference[key], index=SENSORS) for key in ("lower", "upper")}
+
+
 @st.cache_data
 def analyze(frame):
     model = load_model()
-    readings, values, missing = features(frame, model["lower"], model["upper"], model["medians"])
-    scores = pd.Series(score(values, model), index=readings.index).where(missing.le(0.2))
-    return readings, scores, missing
+    _, values, missing = features(frame, model["lower"], model["upper"], model["medians"])
+    scores = pd.Series(score(values, model), index=missing.index).where(missing.le(0.2))
+    return sensor_window_means(frame), scores
 
 
-def chart(readings, scores, sensor, flags, threshold):
+def chart(signal, outside, scores, flags, threshold, lower, upper):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.12)
-    fig.add_trace(go.Scatter(x=readings.index, y=readings[sensor], name=sensor,
-                             line={"color": "#00897b"}), row=1, col=1)
+    fig.add_trace(go.Scatter(x=signal.index, y=signal, name=signal.name,
+                             line={"color": "#00897b"}, hovertemplate="%{y:.6g}"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=signal.index[outside], y=signal[outside], mode="markers",
+                             name="Sensor outside reference", hovertemplate="%{y:.6g}",
+                             marker={"color": "#e05a3f", "size": 9}), row=1, col=1)
+    for limit in (lower, upper):
+        if pd.notna(limit):
+            fig.add_hline(y=limit, line_dash="dash", line_color="#8796a9", row=1, col=1)
     fig.add_trace(go.Scatter(x=scores.index, y=scores, name="PCA score",
                              line={"color": "#457bba"}), row=2, col=1)
     fig.add_trace(go.Scatter(x=scores.index[flags], y=scores[flags], mode="markers",
-                             name="Flagged", marker={"color": "#e05a3f", "size": 9}), row=2, col=1)
+                             name="Pump above PCA threshold", marker={"color": "#e05a3f", "size": 9}), row=2, col=1)
     fig.add_hline(y=threshold, line_dash="dash", line_color="#8796a9", row=2, col=1,
                   annotation_text="Threshold")
-    fig.update_yaxes(title_text="Sensor value", row=1, col=1)
-    fig.update_yaxes(title_text="Anomaly score", row=2, col=1)
+    fig.update_yaxes(title_text="Sensor 15-min mean", row=1, col=1)
+    fig.update_yaxes(title_text="Pump PCA score", row=2, col=1)
     fig.update_layout(height=520, margin={"l": 12, "r": 24, "t": 12, "b": 12},
                       hovermode="x unified", legend={"orientation": "h", "y": -0.18})
     return fig
@@ -65,7 +77,7 @@ else:
         st.stop()
 
 try:
-    readings, scores, _ = analyze(frame)
+    readings, scores = analyze(frame)
 except ValueError as error:
     st.error(str(error))
     st.stop()
@@ -74,10 +86,29 @@ threshold = float(load_model()["threshold"])
 flags = scores.gt(threshold)
 scored, flagged, skipped = st.columns(3)
 scored.metric("Scored windows", f"{scores.count():,}")
-flagged.metric("Flagged windows", f"{flags.sum():,}")
+flagged.metric("Pump flagged windows", f"{flags.sum():,}")
 skipped.metric("Skipped windows", f"{scores.isna().sum():,}")
 sensor = st.selectbox("Sensor to display", SENSORS)
-st.plotly_chart(chart(readings, scores, sensor, flags, threshold), width="stretch")
+signal = readings[sensor]
+reference = load_sensor_reference()
+lower, upper = reference["lower"][sensor], reference["upper"][sensor]
+below, above = signal.lt(lower), signal.gt(upper)
+outside = below | above
+st.subheader(f"{sensor} anomalies")
+if pd.notna(lower) and pd.notna(upper):
+    st.write(f"**{outside.sum():,} out of {signal.count():,} measured windows outside reference**"
+             f" · Reference: {lower:.6g}–{upper:.6g}")
+else:
+    st.write("No reference range is available for this sensor.")
+st.caption(f"Top chart: selected sensor and its reference limits. Bottom chart: PCA score across all sensors. "
+           f"{signal.isna().sum():,} sensor windows have fewer than 12 usable readings.")
+st.plotly_chart(chart(signal, outside, scores, flags, threshold, lower, upper), width="stretch")
+
+if outside.any():
+    events = signal[outside].rename("15-minute mean").to_frame()
+    events["Direction"] = np.where(below[outside], "Below reference", "Above reference")
+    events.index = events.index.strftime("%Y-%m-%d %H:%M")
+    st.dataframe(events.rename_axis("Window start").reset_index(), hide_index=True)
 
 st.subheader("Inspect a window")
 choices = list(scores.index)

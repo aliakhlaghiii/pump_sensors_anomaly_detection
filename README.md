@@ -29,6 +29,7 @@ anomaly_detection/
     ├── detector.py              # CSV validation, features, scoring, and sample generation
     ├── train_model.py           # Offline training, calibration, and artifact export
     ├── pump_model.npz           # Saved preprocessing, PCA parameters, and threshold
+    ├── sensor_reference.npz     # Per-sensor limits learned from normal data
     └── requirements.txt         # Dashboard runtime dependencies
 ```
 
@@ -124,7 +125,21 @@ the threshold.
 pretrained PCA reconstruction-error detector. Try the simulated 24-hour sample
 or upload a CSV with the same timestamp and sensor columns as the sample.
 Select a sensor to plot, then choose any 15-minute window to inspect its score
-and sensor values. The sample scores 93 windows and flags 12.
+and sensor values. The sample scores 93 pump windows and flags 12 using PCA.
+
+### Inspect individual sensor anomalies
+
+Choose a sensor to view its 15-minute means, dashed reference limits, and
+out-of-range markers. The table below the chart lists each flagged sensor
+window with its start time, value, and direction. The limits are the 1st and
+99th percentiles of observed 15-minute means for that sensor in the normal
+calibration windows. A mean requires at least 12 usable minute readings.
+This check uses observed readings before PCA-specific filtering and imputation.
+
+The bottom chart shows the pump-wide PCA score. The two checks can flag
+different windows because PCA evaluates sensor relationships and rolling
+features, while the sensor check evaluates each observed mean against its
+own reference range.
 
 For CSV upload, include a `timestamp` column and all 50 sensor columns from
 **Download sample CSV**. Use consecutive one-minute readings with no timezone

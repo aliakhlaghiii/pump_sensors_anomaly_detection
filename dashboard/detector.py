@@ -64,3 +64,12 @@ def sample_readings(model):
                 signals[first:last, sensor] = baseline + 0.9 * (boundary - baseline)
     index = pd.date_range("2025-01-01", periods=periods * 15, freq="min", name="timestamp")
     return pd.DataFrame(np.repeat(signals, 15, axis=0), index=index, columns=SENSORS)
+
+
+def sensor_window_means(frame):
+    """Use observed sensor values before the PCA-specific filtering and filling."""
+    readings = frame[SENSORS].apply(pd.to_numeric, errors="coerce")
+    readings = readings.where(np.isfinite(readings))
+    windows = readings.resample("15min")
+    complete = windows.size().eq(15)
+    return windows.mean().where(windows.count().ge(12)).loc[complete]
