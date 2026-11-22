@@ -1,6 +1,8 @@
 # Anomaly Detection in Pump Sensor Data
 
-[**Open the live Pump Signal Monitor demo**](https://pumpsensorsanomalydetection-4fylfzdnpnwklw5j3ccmto.streamlit.app/)
+[**Open the live Pump Signal Monitor demo**](https://pumpsensorsanomalydetection-4fylfzdnpnwklw5j3ccmto.streamlit.app/) · [Dashboard source and setup](https://github.com/aliakhlaghiii/pump_sensors_anomaly_detection/tree/pump-dashboard#interactive-dashboard)
+
+Try the sample data or upload a compatible CSV to inspect sensor readings, reference limits, and pump-wide PCA anomaly scores.
 
 **Course:** BFVM25DATASC6 — Data Science  
 **Author:** Ali Akhlaghi
