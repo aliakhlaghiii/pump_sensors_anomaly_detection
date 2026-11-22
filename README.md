@@ -112,7 +112,7 @@ Select a sensor to plot, then choose any 15-minute window to inspect its score
 and sensor values.
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r dashboard/requirements.txt
 python -m streamlit run dashboard/app.py
 ```
 

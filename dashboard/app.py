@@ -55,7 +55,7 @@ else:
         st.code("timestamp," + ",".join(SENSORS), language=None)
         st.write("Use at least 60 consecutive minute readings. Timestamps must have no timezone offset. "
                  "Four full clock-aligned 15-minute windows are required.")
-    uploaded = st.file_uploader("Sensor readings", type="csv", max_upload_size=150)
+    uploaded = st.file_uploader("Sensor readings", type="csv")
     if uploaded is None:
         st.stop()
     try:
