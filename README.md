@@ -102,3 +102,37 @@ pip install scikit-learn pandas numpy matplotlib seaborn scipy pyyaml jupyter
 2. Breunig et al. (2000). *LOF: Identifying density-based local outliers*. ACM SIGMOD.
 3. Shyu et al. (2003). *A novel anomaly detection scheme based on PCA*. IEEE Workshop.
 4. Darban et al. (2024). *Deep Learning for Time Series Anomaly Detection: A Survey*. ACM Comput. Surv. https://doi.org/10.1145/3691338
+
+## Interactive dashboard
+
+**Pump Signal Monitor** scores compatible one-minute sensor readings with a
+pretrained PCA reconstruction-error detector. Try the simulated 24-hour sample
+or upload a CSV with the same timestamp and sensor columns as the sample.
+Select a sensor to plot, then choose any 15-minute window to inspect its score
+and sensor values.
+
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run dashboard/app.py
+```
+
+The dashboard adapts the notebook's PCA detector. It uses 50 sensors,
+15-minute means, and rolling one-hour means and standard deviations. IQR bounds
+and fill values come from normal rows in the first 70% of the source data.
+Scaling and PCA are fit on the earliest 80% of eligible normal windows from
+that segment. The threshold is the 95th percentile of reconstruction errors in
+the remaining normal windows from the same segment. The final 30% of the source
+data is a chronological holdout. A window is skipped if more than 20% of sensors
+are unavailable in any of the four contributing 15-minute windows.
+
+The bundled model runs locally without training or downloading data. The demo
+generates synthetic readings with injected deviations. A flagged score
+indicates an unusual pattern relative to the fitted reference distribution.
+The score does not estimate failure probability.
+
+To rebuild the model using the source CSV listed above:
+
+```bash
+python -m pip install scikit-learn==1.8.0
+python dashboard/train_model.py study_cases/data/sensor.csv
+```
