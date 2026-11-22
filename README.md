@@ -1,5 +1,7 @@
 # Anomaly Detection in Pump Sensor Data
 
+[**Open the live Pump Signal Monitor demo**](https://pumpsensorsanomalydetection-4fylfzdnpnwklw5j3ccmto.streamlit.app/)
+
 **Course:** BFVM25DATASC6 — Data Science  
 **Author:** Ali Akhlaghi
 **Assignment:** Portfolio Assignment — Anomaly Detection
@@ -109,10 +111,14 @@ pip install scikit-learn pandas numpy matplotlib seaborn scipy pyyaml jupyter
 pretrained PCA reconstruction-error detector. Try the simulated 24-hour sample
 or upload a CSV with the same timestamp and sensor columns as the sample.
 Select a sensor to plot, then choose any 15-minute window to inspect its score
-and sensor values.
+and sensor values. The sample scores 93 windows and flags 12.
+
+For CSV upload, include a `timestamp` column and all 50 sensor columns from
+**Download sample CSV**. Use consecutive one-minute readings with no timezone
+offset and at least four complete clock-aligned 15-minute windows.
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r dashboard/requirements.txt
 python -m streamlit run dashboard/app.py
 ```
 
