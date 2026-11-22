@@ -23,7 +23,13 @@ anomaly_detection/
 ├── Final_Assignment_Ali.ipynb   # Main notebook (all analysis and results)
 ├── config.yaml                  # Data path configuration
 ├── README.md                    # This file
-└── report.md                    # Summary report
+├── report.md                    # Summary report
+└── dashboard/
+    ├── app.py                   # Streamlit interface and Plotly charts
+    ├── detector.py              # CSV validation, features, scoring, and sample generation
+    ├── train_model.py           # Offline training, calibration, and artifact export
+    ├── pump_model.npz           # Saved preprocessing, PCA parameters, and threshold
+    └── requirements.txt         # Dashboard runtime dependencies
 ```
 
 **Data** (not included — download separately):
@@ -107,6 +113,13 @@ pip install scikit-learn pandas numpy matplotlib seaborn scipy pyyaml jupyter
 
 ## Interactive dashboard
 
+The notebook records the model experiments. The dashboard provides a workflow
+for trying the trained detector on a sample or on compatible CSV readings,
+then examining which time windows were flagged and why their scores crossed
+the threshold.
+
+### Try the demo
+
 **Pump Signal Monitor** scores compatible one-minute sensor readings with a
 pretrained PCA reconstruction-error detector. Try the simulated 24-hour sample
 or upload a CSV with the same timestamp and sensor columns as the sample.
@@ -117,10 +130,29 @@ For CSV upload, include a `timestamp` column and all 50 sensor columns from
 **Download sample CSV**. Use consecutive one-minute readings with no timezone
 offset and at least four complete clock-aligned 15-minute windows.
 
+### Run locally
+
+From the repository root on the `pump-dashboard` branch:
+
 ```bash
 python -m pip install -r dashboard/requirements.txt
 python -m streamlit run dashboard/app.py
 ```
+
+### How a reading becomes an anomaly score
+
+1. Validate the timestamps and required sensor columns. Filter readings outside
+   the fitted IQR bounds, then aggregate complete 15-minute windows.
+2. Fill unavailable values with the training medians and build the current
+   15-minute mean, rolling one-hour mean, and rolling one-hour standard
+   deviation for each sensor. The first three complete windows provide history.
+3. Standardize the 150 features using the saved scaler, project them into 10 PCA
+   components, and reconstruct them. The mean squared difference between the
+   standardized input and its reconstruction is the anomaly score.
+4. Flag scores above the saved threshold and show them alongside the selected
+   sensor's signal. A window with insufficient sensor coverage is skipped.
+
+### How the model was fitted and served
 
 The dashboard adapts the notebook's PCA detector. It uses 50 sensors,
 15-minute means, and rolling one-hour means and standard deviations. IQR bounds
@@ -135,6 +167,11 @@ The bundled model runs locally without training or downloading data. The demo
 generates synthetic readings with injected deviations. A flagged score
 indicates an unusual pattern relative to the fitted reference distribution.
 The score does not estimate failure probability.
+
+Streamlit Community Cloud builds the Python environment from
+`dashboard/requirements.txt` and runs `dashboard/app.py` from the
+`pump-dashboard` branch. The Python app runs on the server, and the browser
+displays the controls and Plotly charts. Training runs separately.
 
 To rebuild the model using the source CSV listed above:
 
